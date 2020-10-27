@@ -4,8 +4,8 @@ const costTolls = require('./cost-tolls');
 const Vehicle = require('../models/vehicles');
 const findTollInSection = require('./searchFunctions').findTollInSection;
 const validateArea = require('./area').limits;
-// const redisClient = require('../app').redis;
-const redisClient = null;
+const redisClient = require('../app').redis;
+// const redisClient = null;
 const missingTolls = require('./missingTollsFunction').missingTollsArray;
 // const cleanFunctions = require('./cleanFunctions');
 // const cleanPathFunction = cleanFunctions.cleanPathFunction;
@@ -18,22 +18,75 @@ const missingTolls = require('./missingTollsFunction').missingTollsArray;
 const keyGoogle = process.env.GOOGLE_API;
 const keyOpenRoute = process.env.API_OPENROUTES;
 
+function calulateExtraHours(time) {
+  const restHour = 8;
+  const limitDriving = 11;
+  const breaks = 4.30;
+  let hoursWillRest = 0
+  let hoursWillTakeBreakes = 0
+
+  if (time >= breaks) {
+    hoursWillTakeBreakes = (time / breaks) * 0.45;
+    time = time + hoursWillTakeBreakes;
+  }
+
+  // this number is 9 hours
+  if (time >= limitDriving) {
+    hoursWillRest = (time / limitDriving) * restHour;
+  }
+
+  let totalTime = '' + Math.round((time + hoursWillRest + hoursWillTakeBreakes) * 100) / 100;
+
+  totalTime = totalTime.split('.')
+  return `${totalTime[0]} hourse ${totalTime[1]} minutes`
+}
+
+
+const findHotel = async (coordinates, hotels) => {
+
+  const url = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?' +
+    `location=${coordinates}&radius=5000&type=lodging&key=${keyGoogle}`
+
+  const r = await fetch(url)
+  const findHotel = await r.json()
+
+  return findHotel.results.forEach(element => {
+    hotels.push({
+      name: element.name,
+      location: element.geometry.location,
+      rating: element.rating
+    })
+  });
+}
+
 /**
  * find a section where there might be a toll
  * return: list of sections
  */
-function findSection (steps, array) {
+async function findSection (steps, array, duration) {
   const sections = [];
   const path = [];
+  const hotels = [];
   let start;
   let end;
-  let time;
+  // this time is in seconds
+  let time = 0;
 
+  console.log(duration)
   for (const i in steps) {
     start = steps[i].start_location;
     end = steps[i].end_location;
     time = time + steps[i].duration.value
     // console.log(steps[i])
+    // this is for fine when the driver take a brake
+    if (Math.ceil(time / 3600) >= 9 && Math.ceil(time / 3600) <= 10) {
+      // find the middle point
+      await findHotel(`${start.lat},${start.lng}`, hotels);
+      // if (hotel.length !== 0) {
+      //   hotels.push(hotel);
+      // }
+      time = 0;
+    }
 
     // checking for the missing tolls
     for (const idx in array) {
@@ -54,13 +107,14 @@ function findSection (steps, array) {
     }
     path.push({ start, end });
   }
-
-
-  console.log(time)
-
+  // convert to hours
+  // console.log(calulateExtraHours(duration / 3600));
+  console.log(hotels)
   return {
     tolls: sections,
-    path: path
+    path: path,
+    time: calulateExtraHours(duration / 3600),
+    hotels: hotels
   };
 }
 
@@ -116,7 +170,7 @@ const requestAll = async (origin, destination, vehicleName) => {
   let isCache = false;
   let jsonData = null;
 
-  const sections = findSection(dataGoogle.steps, missingTolls);
+  const sections = await findSection(dataGoogle.steps, missingTolls, dataGoogle.duration.value);
   const tolls = [];
 
   for (const section in sections.tolls) {
@@ -204,11 +258,12 @@ const requestAll = async (origin, destination, vehicleName) => {
   return {
     total_expenses: '$ ' + Math.ceil(tollsCost.total + totalFuel + totalExpencesVehicle),
     total_kms: kms,
-    duration: dataGoogle.duration.text,
+    duration: sections.time,
     total_vehicle_expenses: Math.ceil(totalExpencesVehicle),
     total_fuel_cost: Math.ceil(totalFuel),
     toll_expenses: tollsCost,
     total_tolls: tolls.length,
+    hotels: sections.hotels,
     tolls: tolls,
     path: sections.path
   };

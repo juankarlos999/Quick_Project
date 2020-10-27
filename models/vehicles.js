@@ -100,7 +100,6 @@ Vehicles.statics.deleteFeaturesById = async function (id, features) {
   }
 
   if (mongoose.isValidObjectId(id)) {
-    console.log(query);
     vehicle = await this.findByIdAndUpdate(id, { $unset: query }, { new: true });
   }
   return vehicle;
