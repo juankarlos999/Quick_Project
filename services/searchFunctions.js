@@ -188,16 +188,16 @@ exports.findTollInSection = function (sectionPoints, originPoint, destinationPoi
   //   console.log('Saved');
   // });
 
-  const searchAreaPoints = {
-    lat: {
-      min: sectionPoints[0][1],
-      max: sectionPoints[0][1]
-    },
-    lng: {
-      min: sectionPoints[0][0],
-      max: sectionPoints[0][0]
-    }
-  };
+  // const searchAreaPoints = {
+  //   lat: {
+  //     min: sectionPoints[0][1],
+  //     max: sectionPoints[0][1]
+  //   },
+  //   lng: {
+  //     min: sectionPoints[0][0],
+  //     max: sectionPoints[0][0]
+  //   }
+  // };
   const sortedSectionPoints = mergeSort(sectionPoints, searchAreaPoints);
   adjustSearchAreaPoints(searchAreaPoints, originPoint, destinationPoint, sectionDirection);
 

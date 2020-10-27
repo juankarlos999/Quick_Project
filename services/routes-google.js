@@ -27,10 +27,14 @@ function findSection (steps, array) {
   const path = [];
   let start;
   let end;
+  let time;
 
   for (const i in steps) {
     start = steps[i].start_location;
     end = steps[i].end_location;
+    time = time + steps[i].duration.value
+    // console.log(steps[i])
+
     // checking for the missing tolls
     for (const idx in array) {
       if ((steps[i].start_location.lat === array[idx].surNorte.lat &&
@@ -50,6 +54,9 @@ function findSection (steps, array) {
     }
     path.push({ start, end });
   }
+
+
+  console.log(time)
 
   return {
     tolls: sections,

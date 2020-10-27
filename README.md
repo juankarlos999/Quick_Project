@@ -107,6 +107,10 @@ Frameworks:
 -  https://dspace.ups.edu.ec/bitstream/123456789/10009/1/UPS-GT001116.pdf
 
 
+- [ ] Information about the time to rest and keep driving
+- https://movertis.com/blog/tablas-de-tiempo-de-conduccion-y-descanso/
+
+
 - [ ]  For more information on toll collection, you can follow the following repository:
 -  https://github.com/andresvanegas19/tolls-colombia-2020
 
